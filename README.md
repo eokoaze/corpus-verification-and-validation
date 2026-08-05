@@ -1,7 +1,7 @@
-# Corpus Verification and Validation Pipeline
+# V & V Pipeline Usage Guide
 
-This folder contains a small experimental pipeline for testing corpus-quality
-metrics under controlled defect injection.
+This project is an experimental pipeline for testing corpus-quality
+metrics using controlled defect injection.
 
 ## What the pipeline does
 
@@ -103,5 +103,3 @@ clearly different texts score higher.
   resolve correctly.
 - The pipeline uses random seeds, so results are reproducible across runs as
   long as the code and corpus files stay the same.
-- If you publish this on GitHub, include the corpus files or document clearly
-  how to obtain them.
