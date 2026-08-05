@@ -24,7 +24,8 @@ import json
 import statistics as st
 from collections import Counter
 
-from metric import tokenize, ngram_counts, jensen_shannon_fast as jsd
+from metric import tokenize, ngram_counts
+from rgt import jsd_rgt as jsd
 from defects import to_documents, _pick_indices
 from experiment import load, split_docs
 

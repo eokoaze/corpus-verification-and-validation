@@ -13,13 +13,17 @@ from __future__ import annotations
 from collections import Counter
 from typing import Iterable, Sequence
 import math
-import re
+import regex as _re
 
-_WORD_RE = re.compile(r"\w+", re.UNICODE)
+# A token is a letter/digit followed by any letters, digits, or combining marks.
+# \p{M} is essential for vocalized Arabic (and Hebrew, Devanagari): diacritics are
+# Unicode category Mn, which \w does NOT match, so a naive \w+ pattern silently
+# shatters each vocalized word into single letters.
+_WORD_RE = _re.compile(r"[\p{L}\p{N}][\p{L}\p{N}\p{M}]*", _re.UNICODE)
 
 
 def tokenize(text: str) -> list[str]:
-    """Lowercase word tokenization, Unicode-aware (works for Arabic, Latin scripts)."""
+    """Lowercase word tokenization, Unicode-aware (Latin, Arabic, Cyrillic...)."""
     return _WORD_RE.findall(text.lower())
 
 
