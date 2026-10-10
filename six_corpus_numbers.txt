@@ -1,0 +1,51 @@
+============================================================
+SIX-CORPUS RESULTS — authoritative numbers for the paper
+============================================================
+
+[1] CORPUS SUBSTRATE
+  english   chars= 4583509 tokens= 844127 types= 26660 theta=0.0112
+  bible     chars= 4331992 tokens= 854044 types= 12744 theta=0.0047
+  spanish   chars= 2097502 tokens= 381256 types= 22960 theta=0.0294
+  arabic    chars=  706471 tokens=  77429 types= 21117 theta=0.1803
+  igbo      chars= 2500051 tokens= 498421 types= 29591 theta=0.0348
+  pidgin    chars= 2500068 tokens= 446759 types= 18827 theta=0.0220
+
+[2] WITHIN-CORPUS effect size at r=0.05 (RGT) — mean across 6 corpora
+    (pooling is INVALID here: Simpson's paradox inflates SD; report within-corpus)
+  foreign      mean d=+5.34  range [+3.49, +7.61]
+  encoding     mean d=+8.28  range [+4.55, +13.88]
+  duplicate    mean d=+0.80  range [-0.22, +1.65]
+  boilerplate  mean d=+0.21  range [-0.75, +0.95]
+  truncate     mean d=+0.24  range [+0.10, +0.37]
+
+[3] FOREIGN contamination per corpus (RGT): r=0 -> r=0.5, d@0.05
+  english   0.0034 -> 0.0739  d=3.49  (<-arabic)
+  bible     0.0051 -> 0.0785  d=5.04  (<-arabic)
+  spanish   0.0033 -> 0.1411  d=7.27  (<-arabic)
+  arabic    0.0062 -> 0.6890  d=7.61  (<-english)
+  igbo      0.0040 -> 0.1113  d=5.06  (<-arabic)
+  pidgin    0.0038 -> 0.1154  d=3.53  SAME-SCRIPT hard case (pidgin<-english)
+
+[4] ENCODING: RGT vs baseline per corpus (d@0.05)
+  english   RGT d=+5.86  baseline d=-2.69
+  bible     RGT d=+6.99  baseline d=-6.51
+  spanish   RGT d=+9.54  baseline d=-9.30
+  arabic    RGT d=+4.55  baseline d=-7.41
+  igbo      RGT d=+13.88  baseline d=-1.99
+  pidgin    RGT d=+8.89  baseline d=-3.18
+
+[5] MONOTONICITY (RGT): fraction of 7 rate-steps increasing, per defect (mean over corpora)
+  foreign      mean monotonic fraction = 1.00
+  encoding     mean monotonic fraction = 1.00
+  duplicate    mean monotonic fraction = 0.98
+  boilerplate  mean monotonic fraction = 0.86
+  truncate     mean monotonic fraction = 0.98
+
+[6] DOCUMENT-LEVEL detection (structural defects), per corpus ROC-AUC @0.05
+  truncate     all six = {'1.000'}
+  duplicate    all six = {'1.000'}
+
+[7] Structural vs content separation (within-corpus mean d)
+  content defects: 5.34-8.28
+  structural defects: 0.21-0.80
+  ratio (min content / max struct): 6.7x

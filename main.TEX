@@ -40,22 +40,22 @@ descriptive taxonomy. Second, we introduce Reciprocal Good--Turing (RGT)
 smoothing, a parameter-free estimator for divergence between two corpora: the
 reserved probability mass is set by the Good--Turing singleton estimate and
 redistributed over unseen n-grams in proportion to the comparison partner's
-distribution. RGT eliminates the free smoothing parameter, self-adapts across
-n-gram orders by two orders of magnitude on the same texts, and yields a
-conservative divergence estimate. Third, we evaluate detection against controlled
-ground truth: five defect classes injected at known rates into clean corpora,
-giving 2{,}400 corpus-level and 360 document-level measurements. RGT is monotonic
-in defect rate for every defect class and attains larger effect sizes than
-add-$k$ smoothing at every setting of $k$ examined for encoding corruption
-($d=1.93$ versus a range of $0.47$--$1.58$), while requiring no parameter choice.
-A frequency-profile measure representative of established practice is
-non-monotonic on encoding corruption and exhibits a \emph{negative} effect size
-($d=-0.80$, $p=1.000$), reporting a more corrupted corpus as more similar to its
-clean reference. The framework's central prediction is confirmed: content defects
-are detected at the corpus level with effect sizes at least $6.5\times$ those of
-structural defects, none of which survives correction for multiple comparisons,
-whereas structural defects are detected perfectly at the document level (ROC-AUC
-$=1.000\pm0.000$).
+distribution. RGT removes the free smoothing parameter and self-adapts across
+n-gram orders and across languages, requiring no user-selected corpus, language, 
+or n-gram-specific smoothing parameter. We use ‘parameter-free’ to mean that no user-selected smoothing parameter such as $k$ is required; the smoothing mass is determined from the observed corpus, with fixed boundary rules for degenerate cases. Third, we evaluate detection against
+controlled ground truth on \emph{six} corpora spanning five languages and two
+scripts; including the King James Bible, Spanish, Arabic, Igbo, and Nigerian
+Pidgin, injecting five defect classes at known rates, for 2{,}400 corpus-level
+and 360 document-level measurements. Across every language, RGT is monotonic in
+defect rate for content defects and yields large within-corpus effect sizes
+(mean $d=8.3$ for encoding corruption, $d=5.3$ for foreign-text contamination),
+whereas a frequency-profile baseline representative of established practice moves
+in the \emph{wrong direction} under light encoding corruption in all six corpora
+($d$ from $-2.0$ to $-9.3$). The framework's central prediction holds in every
+language: structural defects are weak at the corpus level (mean $d\le0.8$) but
+are detected perfectly at the document level (ROC-AUC $=1.000\pm0.000$ in all
+six), while content defects produce substantially larger corpus-level effects, 
+a separation of at least $6.7\times$ in effect size.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -75,19 +75,19 @@ quality control.
 Recent large-scale audits have made the cost of this omission concrete. A manual
 audit of 205 language-specific corpora drawn from five major public multilingual
 datasets found that at least fifteen contained no usable text at all, that a
-substantial fraction consisted of less than half acceptable-quality sentences,
-and that scores of corpora were mislabelled or carried nonstandard language
+substantial fraction consisted of less than half acceptable-quality sentences 
+and that corpora scores were mislabelled or carried nonstandard language
 codes \cite{kreutzer2022}. Duplication in training corpora has separately been
 shown to degrade downstream language models \cite{lee2022dedup}. These are not
-exotic failures; they are precisely the defects a routine quality-management
-process would catch.
+exotic failures; they are precisely the defects that a routine quality-management
+process would detect.
 
-Software and systems engineering formalize such a process as \emph{verification
+Software and system engineering formalizes such a process as \emph{verification
 and validation} \cite{boehm1984,ieee1012}. Verification asks whether the artifact
 was built correctly against its specification; validation asks whether the right
 artifact was built for the user's needs. Applied to corpora, verification
-concerns structure:empty or truncated documents, duplicates, inconsistent
-markup, mismatched document counts across a parallel pair---while validation
+concerns structure: empty or truncated documents, duplicates, inconsistent
+markup, mismatched document counts across a parallel pair; while validation
 concerns content: whether the text is in the language claimed, whether it is
 representative, whether annotations are correct.
 
@@ -98,29 +98,27 @@ use. \emph{And how do we know a proposed measure detects anything?} A measure is
 commonly demonstrated by computing it between two well-known corpora, obtaining a
 small number, computing it between two dissimilar corpora, obtaining a larger
 number, and observing that the ordering is intuitive. This establishes that the
-measure ranks obviously-different texts above obviously-similar ones. It does not
+measure ranks obviously different texts above obviously similar ones. It does not
 establish detection, because no defect was present to detect and no correct
 answer was available for comparison.
 
 We address both questions. For the second we construct ground truth by
 \emph{controlled defect injection}: starting from clean corpora, we inject
 defects of known type at known rates, so the correct answer is known by
-construction. This supports dose--response curves, effect sizes, significance
-tests, and comparison against a baseline---the standard apparatus for validating
-a detection method.
+construction. This enables dose–response analysis, effect-size estimation, statistical testing, and comparison with a baseline.
 
 Our contributions are:
 
 \begin{enumerate}
   \item \textbf{An operational V\&V framework} that maps each defect class to the
         instrument that detects it, stated as a falsifiable prediction and
-        confirmed experimentally (Sections~\ref{sec:framework}
+        supported experimentally (Sections~\ref{sec:framework}
         and~\ref{sec:results}).
-  \item \textbf{Reciprocal Good--Turing smoothing}, a parameter-free estimator
+  \item \textbf{Reciprocal Good--Turing smoothing}, an estimator requiring no user-selected 
+        corpus-, language-, or n-gram-specific smoothing parameter, 
         for corpus divergence that derives its smoothing mass from the data and
         redistributes it using the comparison partner rather than uniformly
-        /*(Section~\ref{sec:rgt})*/. It removes a free parameter whose choice we show
-        can change measured effect size more than threefold.
+        (Section~\ref{sec:rgt}). It removes a free parameter whose choice changes the measured encoding-corruption effect size by 2.5× over the tested add-$k$ range.
   \item \textbf{A controlled defect-injection benchmark} for corpus V\&V,
         comprising 2{,}400 corpus-level and 360 document-level measurements over
         five defect classes and eight injection rates
@@ -147,16 +145,14 @@ divergence \cite{lin1991} provides a symmetric, bounded alternative whose square
 root satisfies the triangle inequality \cite{endres2003}.
 
 \subsection{Smoothing}
-Estimating a divergence requires nonzero probabilities across the union of two
-vocabularies, which makes smoothing unavoidable. Add-$k$ (Lidstone) and related
+To obtain finite divergence over the union of the two vocabularies, nonzero probability estimates are required, motivating smoothing. Add-$k$ (Lidstone) and related
 schemes are surveyed in \cite{chen1999}. Good--Turing estimation
 \cite{good1953,gale1995} instead derives the mass reserved for unseen events from
 the frequency-of-frequencies of the observed sample. In information retrieval,
 document language models are commonly smoothed toward a background collection
 model \cite{zhai2004}. Our estimator (Section~\ref{sec:rgt}) combines the
 Good--Turing mass estimate with a redistribution conditioned on the comparison
-partner; we state the relationship to this prior work precisely in
-Section~\ref{sec:rgt-novelty}.
+partner; Section~\ref{sec:rgt-novelty} states the relationship precisely.
 
 \subsection{Corpus documentation and auditing}
 Datasheets \cite{gebru2021} and data statements \cite{bender2018} standardize
@@ -165,14 +161,14 @@ of web-crawled multilingual corpora \cite{kreutzer2022} report what is actually
 \emph{found} in them. These are complementary to our concern: they prescribe
 documentation and report manual findings, whereas we ask which automatic
 measurement reliably detects a given defect and demonstrate it against ground
-truth.
+truth across languages.
 
 \section{An Operational V\&V Framework}
 \label{sec:framework}
 
 We take verification to concern the \emph{structure} of a corpus and validation
-to concern its \emph{content}. The substantive claim is that this is not
-bookkeeping but a statement about where the evidence for a defect resides.
+its \emph{content}. The substantive claim is that this is not bookkeeping but a
+statement about where the evidence for a defect resides.
 
 A structural defect perturbs the arrangement of documents while leaving the
 aggregate distribution of linguistic material largely intact. Replacing one
@@ -184,18 +180,17 @@ barely moves, and the evidence lives in relations \emph{between} documents.
 A content defect changes the linguistic material itself. Substituting a
 foreign-language document introduces character sequences absent from the
 reference; corrupting an encoding introduces symbols outside the script. The
-aggregate distribution does move, and comparison against a trusted reference is
+aggregate distribution moves, and comparison against a trusted reference is
 informative.
 
 This yields Table~\ref{tab:framework} and the following prediction, which
-Section~\ref{sec:results} tests directly:
+Section~\ref{sec:results} tests directly in every language:
 
 \begin{quote}
-\emph{Corpus-level divergence detects content (validation) defects and fails on
-structural (verification) defects; document-level instruments do the reverse.}
+\emph{The reported experiments support the framework's prediction that corpus-level divergence is sensitive to content defects while document-level structural detectors identify duplication and truncation across all six corpora.}
 \end{quote}
 
-\begin{table}[t]
+\begin{table}[hbt!]
 \caption{Defect classes, V\&V category, and predicted instrument.}
 \label{tab:framework}
 \centering
@@ -215,27 +210,25 @@ Encoding corr.\ & Valid.\ & aggregate content  & corpus-level \\
 \end{table}
 
 A further consequence is that the n-gram \emph{type} is not a free choice.
-Defects operating below the word---script substitution, mojibake---destroy the
-tokenization that word-level statistics presuppose and must be measured over
-character n-grams. We use word unigrams for structural defects and character
-trigrams for content defects.
+Some defects operate below the word level. Script substitution and mojibake can corrupt the character sequence itself, making word-level statistics unreliable because those statistics presuppose successful tokenization. We use word unigrams for structural defects and character trigrams for
+content defects.
 
 \section{A Measure for Corpus Comparison}
 \label{sec:method}
-
 \subsection{Requirements}
-The task imposes four requirements. The measure must be \textbf{(R1) symmetric},
-since neither corpus in a comparison is privileged; \textbf{(R2) bounded}, so
-that magnitudes are interpretable across corpus pairs of different sizes;
-\textbf{(R3) defined over the union of the two vocabularies}, because n-grams
-present in one corpus and absent from the other are among the most diagnostic
-evidence available and must not be discarded; and \textbf{(R4) free of arbitrary
-tuning}, since a quality-control instrument whose verdict depends on an analyst's
-parameter choice is of limited evidential value.
+The task imposes four requirements: \textbf{(R1) symmetry}, since neither corpus
+is privileged; \textbf{(R2) boundedness}, so magnitudes are interpretable across
+corpus pairs of different sizes; \textbf{(R3) definition over the union of the two
+vocabularies}, because n-grams present in one corpus and absent from the other
+are among the most diagnostic evidence and must not be discarded; and
+\textbf{(R4) freedom from arbitrary tuning}, since a quality-control instrument
+whose verdict depends on an analyst's parameter choice is of limited evidential
+value.
 
 \subsection{Divergence}
 We use the Jensen--Shannon divergence \cite{lin1991} between the n-gram
-distributions $P$ and $Q$ of the two corpora,
+distributions $P$ and $Q$ of the two corpora: $M$ is the average distribution of $P$ and $Q$, Kullback–Leibler divergence $D_{\mathrm{KL}}(P \| M)$ measures how
+different $P$ is from $M$;
 \begin{equation}
 \begin{split}
 \mathrm{JSD}(P,Q) &= \tfrac{1}{2} D_{\mathrm{KL}}(P \| M)
@@ -243,30 +236,27 @@ distributions $P$ and $Q$ of the two corpora,
                  M &= \tfrac{1}{2}(P+Q),
 \end{split}
 \end{equation}
-which satisfies R1 and R2: it is symmetric, and bounded with
-$0 \le \mathrm{JSD} \le 1$ bit, equalling zero exactly when $P=Q$. It retains the
-compression interpretation, since $D_{\mathrm{KL}}(P\|Q)$ is the expected excess
-codelength in bits per n-gram incurred by coding one corpus with a model trained
-on the other \cite{cover2006}.
-
-Requirements R3 and R4 concern how $P$ and $Q$ are estimated, which is where the
-difficulty lies.
+which satisfies R1 and R2: it is symmetric and bounded, $0 \le \mathrm{JSD} \le
+1$ bit, equalling zero exactly when $P=Q$. It retains the compression
+interpretation, since $D_{\mathrm{KL}}(P\|Q)$ is the expected excess codelength
+in bits per n-gram incurred by coding one corpus with a model trained on the
+other \cite{cover2006}. Requirements R3 and R4 concern how $P$ and $Q$ are
+estimated, which is where the difficulty lies.
 
 \subsection{Reciprocal Good--Turing smoothing}
 \label{sec:rgt}
 
 Because $\log 0$ is undefined, a divergence over the vocabulary union requires
-every n-gram to receive nonzero probability under both corpora. Add-$k$
-smoothing supplies this but has two properties unsuitable here. It requires
-choosing $k$, for which this setting offers no principled value (violating R4).
-And it distributes the reserved mass \emph{uniformly}: an n-gram absent from
-corpus $A$ but frequent in $B$ receives the same probability under $A$ as one
-absent from $A$ and vanishingly rare in $B$, although the two carry very
-different evidential weight. A further practical difficulty is that the effective
-smoothing strength of add-$k$ is $k|V|/(N+k|V|)$, which depends on vocabulary
-size; since $|V|$ differs by orders of magnitude between word unigrams and
-character trigrams, a single $k$ imposes materially different smoothing at
-different n-gram orders.
+every n-gram to receive nonzero probability under both corpora. Add-$k$ smoothing
+supplies this but has two properties unsuitable here. It requires choosing $k$,
+for which this setting offers no principled value (violating R4). And it
+distributes the reserved mass \emph{uniformly}: an n-gram absent from corpus $A$
+but frequent in $B$ receives the same probability under $A$ as one absent from
+$A$ and vanishingly rare in $B$, although the two carry very different evidential
+weight. A further difficulty is that the effective smoothing strength of add-$k$
+is $k|V|/(N+k|V|)$, which depends on vocabulary size; since $|V|$ differs by
+orders of magnitude between word unigrams and character trigrams, and between
+languages, a single $k$ imposes materially different smoothing across conditions.
 
 We therefore estimate the reserved mass from the data and redistribute it using
 the comparison partner. Let corpora $A$ and $B$ have counts $C_A, C_B$, token
@@ -282,7 +272,7 @@ property of the corpus, not a tuning choice.
 
 \textbf{Redistribution.} Let $U_A = V \setminus V_A$ be the n-grams $B$ has and
 $A$ lacks. Distribute $A$'s reserved mass over $U_A$ in proportion to the
-partner's distribution there:
+partner's distribution there and symmetrically for $B$:
 \begin{equation}
 P_A(g) =
 \begin{cases}
@@ -290,7 +280,9 @@ P_A(g) =
 \theta_A\,\dfrac{C_B(g)/N_B}{\sum_{g' \in U_A} C_B(g')/N_B}, & g \in U_A,
 \end{cases}
 \end{equation}
-and symmetrically for $B$. Both are proper distributions over $V$, since the two
+If $U_A = \varnothing$, no unseen support exists on which to redistribute the reserved mass, and the implementation therefore uses the unsmoothed empirical distribution $P_A(g) = C_A(g)/N_A$.
+
+\vspace{1em}Both are proper distributions over $V$, since the two
 branches contribute $(1-\theta)$ and $\theta$ respectively. We floor $\theta$ at
 $1/(N+1)$ to keep probabilities strictly positive when a corpus has no
 singletons, and cap it at $0.5$ so observed events always retain the majority of
@@ -302,49 +294,37 @@ least-committal assumption is that $A$ resembles $B$. The divergence then measur
 departure from that null rather than an artifact of where mass was arbitrarily
 placed.
 
+
 \subsection{Relationship to prior work}
 \label{sec:rgt-novelty}
-Good--Turing estimation \cite{good1953,gale1995} and the practice of smoothing a
-model toward a background distribution \cite{zhai2004} are both long
-established. The contribution here is their composition for the two-corpus
-divergence setting: using the Good--Turing mass estimate \emph{and} conditioning
-its redistribution on the comparison partner rather than on a fixed background or
-a uniform prior. This combination removes the free parameter, makes effective
-smoothing self-adapting across n-gram orders, and---as
-Section~\ref{sec:res-smoothing} shows---yields a conservative divergence estimate
-with larger effect sizes than any fixed $k$ examined on the harder of our two
-content defects.
+Good--Turing estimation \cite{good1953,gale1995} and smoothing toward a
+background distribution \cite{zhai2004} are both long established. The
+contribution is their composition for the two-corpus divergence setting: using
+the Good--Turing mass estimate \emph{and} conditioning its redistribution on the
+comparison partner rather than on a fixed background or a uniform prior. This
+removes the free parameter, makes effective smoothing self-adapting across n-gram
+orders and languages, and; as Section~\ref{sec:res-smoothing} shows, matches
+the better part of the add-$k$ range with no parameter set.
 
 \subsection{Properties}
 \label{sec:props}
-We verified the following empirically rather than assuming them. Over all pairs
-and triples drawn from the corpora of Table~\ref{tab:corpora}, RGT is symmetric
-and satisfies the identity of indiscernibles exactly, and all divergences lie in
-$[0,1]$.
+We verified the following empirically. Over all pairs and triples drawn from the
+six corpora of Table~\ref{tab:corpora}, RGT is symmetric and satisfies the
+identity of indiscernibles exactly, and all divergences lie in $[0,1]$.
 
 Metricity requires a caveat we state explicitly. Under fixed smoothing,
 $\sqrt{\mathrm{JSD}}$ is a true metric \cite{endres2003}. Under RGT the estimated
 distributions are \emph{pair-dependent}: the $P_A$ used for $d(A,B)$ differs from
-the one used for $d(A,C)$, so the guarantee does not transfer. Empirically
-$\sqrt{\mathrm{JSD}}$ satisfied the triangle inequality in all $168$ triples
-formed from our corpora, and in $9{,}000$ triples of corpora sampled at sizes
-from $20$ to $20{,}000$ tokens. A directed search over degenerate configurations
-does produce violations, at a rate of $5.4\%$, but only when \emph{every} corpus
-in the triple consists of a handful of tokens in which nearly every type is a
-singleton, driving $\theta$ to its cap. On the corpora studied here $\theta$
-ranges from $0.0015$ to $0.18$ (Table~\ref{tab:theta}), far from that regime.
-Where formal metricity is required---for instance to use the measure inside an
-algorithm that relies on the triangle inequality---fixed-$k$ smoothing should be
-preferred; for detection, which is our concern, RGT is the stronger estimator.
-
-\subsection{Per-n-gram attribution}
-To identify which n-grams drive a divergence we use the pointwise contribution
-\begin{equation}
-\delta(g) = \tfrac{1}{2}P(g)\log_2\tfrac{P(g)}{M(g)}
-          + \tfrac{1}{2}Q(g)\log_2\tfrac{Q(g)}{M(g)} \; \ge 0,
-\end{equation}
-which is nonnegative and sums to $\mathrm{JSD}$, so each n-gram's share of the
-total is exactly attributable.
+that used for $d(A,C)$, so the guarantee does not transfer. Empirically
+$\sqrt{\mathrm{JSD}}$ satisfied the triangle inequality in all triples formed from
+our corpora and in $9{,}000$ triples of corpora sampled at sizes from $20$ to
+$20{,}000$ tokens; a directed search produces violations only when every corpus
+in a triple is a handful of tokens in which nearly all types are singletons,
+driving $\theta$ to its cap. On the corpora studied here $\theta$ ranges from
+$0.005$ to $0.18$ (Table~\ref{tab:corpora}), far from that regime. Where formal
+metricity is required, fixed-$k$ smoothing should be preferred; for the detection 
+task studied here, RGT provides larger or comparable effect sizes without a 
+user-selected smoothing parameter..
 
 \subsection{Baseline}
 As a baseline representing established practice we use the mean absolute
@@ -358,333 +338,294 @@ B(C_1,C_2) = \frac{1}{|V|}\sum_{g \in V}
 \label{sec:design}
 
 \subsection{Corpus substrate}
-We require corpora that are clean, redistributable, and independent of any used
-to develop the method. We use eight public-domain texts
-(Table~\ref{tab:corpora}): six English novels, the King James Bible as an
-archaic-register contrast, and the Qur'\={a}n as a non-Latin-script text.
-Project Gutenberg licence boilerplate was stripped and its absence verified,
-since the identical legal header shared by every file would otherwise be a
-confound.
+We use six public-domain or openly-licensed corpora spanning five languages and
+two scripts (Table~\ref{tab:corpora}). \textbf{English} concatenates six public-domain
+novels. \textbf{Bible} is the King James Version, an archaic English register.
+\textbf{Spanish} is \emph{Don Quijote}. \textbf{Arabic} is the Qur'\={a}n, our
+non-Latin (Arabic-script) condition. \textbf{Igbo} and \textbf{Nigerian Pidgin}
+are drawn from the AfriBERTa corpus \cite{ogueji2021}, predominantly BBC News;
+Igbo is a Niger--Congo language written in Latin script with sub-dot and tonal
+diacritics, and Nigerian Pidgin is an English-lexified creole. Pidgin is included
+deliberately as a \emph{same-script, related-lexicon} stress case for foreign-text
+detection. Project Gutenberg licence boilerplate was stripped and its absence
+verified. The corpora span a wide range of the smoothing statistic $\theta$
+(0.005--0.18), exercising the smoothing estimator across conditions.
 
-\begin{table}[t]
-\caption{Corpus substrate after cleaning.}
+\begin{table}[hbt!]
+\caption{Corpus substrate: six corpora, five languages, two scripts. $\theta$ is
+the data-derived word-level smoothing strength.}
 \label{tab:corpora}
 \centering
 \small
-\begin{tabular}{@{}lrrr@{}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-Corpus & Characters & Tokens & Types \\
+Corpus & Language / note & Tokens & Types & $\theta$ \\
 \midrule
-\textit{Pride and Prejudice}   &   684{,}583 & 122{,}880 &  6{,}322 \\
-\textit{Sherlock Holmes}       &   562{,}297 & 105{,}999 &  7{,}890 \\
-\textit{A Tale of Two Cities}  &   757{,}019 & 138{,}394 &  9{,}700 \\
-\textit{Great Expectations}    &   993{,}718 & 188{,}926 & 10{,}771 \\
-\textit{Dubliners}             &   370{,}683 &  69{,}231 &  7{,}173 \\
-\textit{Moby-Dick}             & 1{,}215{,}199 & 218{,}697 & 17{,}148 \\
-King James Bible               & 4{,}331{,}992 & 854{,}044 & 12{,}744 \\
-Qur'\={a}n (Arabic)            &   706{,}471 &  77{,}429 & 21{,}117 \\
+English   & English (6 novels) & 844{,}127 & 26{,}660 & 0.011 \\
+Bible     & English (archaic)  & 854{,}044 & 12{,}744 & 0.005 \\
+Spanish   & Spanish            & 381{,}256 & 22{,}960 & 0.029 \\
+Arabic    & Arabic (script)    &  77{,}429 & 21{,}117 & 0.180 \\
+Igbo      & Igbo (diacritics)  & 498{,}421 & 29{,}591 & 0.035 \\
+Pidgin    & Nigerian Pidgin    & 446{,}759 & 18{,}827 & 0.022 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Protocol}
-Each corpus is segmented into pseudo-documents and split by document into a
-trusted \textsc{reference} half and a \textsc{test} half. Because both halves
-originate in the same text, their divergence at zero injection provides the null
-distribution. A defect is injected into the \textsc{test} half at rate
-$r \in \{0,.05,.10,.15,.20,.30,.40,.50\}$ and we record the divergence under RGT,
-under add-$k$, and the frequency baseline. Because injection is programmatic, the
-correct answer is known by construction.
+For each randomization seed, the corpus documents were independently shuffled 
+and divided into trusted \textsc{reference} and \textsc{test} halves; the same 
+seed-specific split was retained across all injection rates for that randomization. 
+Because both halves originate in the same corpus, their divergence at zero injection 
+provides the null distribution \emph{for that corpus}. A defect is injected into the
+\textsc{test} half at rate $r \in \{0,.05,.10,.15,.20,.30,.40,.50\}$, and we
+record divergence under RGT, add-$k$, and the frequency baseline. Because
+injection is programmatic, the correct answer is known by construction.
 
 Five defect classes are implemented: \textbf{duplicate} (documents replaced by
 copies of others), \textbf{truncate} (documents cut to five tokens),
 \textbf{boilerplate} (a repeated promotional string appended), \textbf{foreign}
-(documents replaced by Arabic documents), and \textbf{encoding} (characters
-replaced by mojibake symbols).
+(documents replaced by documents from another corpus), and \textbf{encoding}
+(for encoding corruption, a fraction $r$ of TEST documents was selected, and each non-whitespace character within a selected document was independently replaced with probability 0.15 by a symbol drawn from a fixed set of mojibake-like characters). For foreign contamination each corpus
+is contaminated by a script-different partner where possible; the exception is
+Pidgin, contaminated with English (same script, shared lexicon) as the hardest
+case.
 
-Six corpora $\times$ 10 seeds give $n=60$ independent measurements per (defect,
-rate) cell; with five defects and eight rates this yields 2{,}400 corpus-level
-measurements, plus 360 document-level runs.
+Six corpora $\times$ 10 seeds give $n=60$ independent randomizations conditional
+on the corpus per (defect, rate) cell; with five defects and eight rates this 
+yields 2{,}400 corpus-level measurements, plus 360 document-level runs.
+
+\subsection{Reporting effect sizes: within corpus, not pooled}
+\label{sec:pooling}
+Effect sizes must be computed \emph{within} each corpus and then averaged, not by
+pooling measurements across corpora. Because corpora differ in their baseline ($r=0$) 
+divergence, pooling inflates the standard deviation and attenuates the effect size. 
+For foreign contamination, for instance, the naive pooled effect size at $r=0.05$ 
+is $d=0.74$, whereas every individual corpus shows $d$ between $3.5$ and $7.6$. 
+We therefore report within-corpus effect sizes throughout.
 
 \subsection{Document-level detectors}
 For structural defects we score each document for suspicion. Duplication is
 scored as $1-\min_{j\neq i}\sqrt{\mathrm{JSD}}(d_i,d_j)$, so an exact copy scores
-$1$; ground truth labels \emph{both} members of a duplicate pair, since a
-detector legitimately flags both. Truncation is scored by inverse length. We
-report ROC-AUC against the injected labels.
+$1$; ground truth labels \emph{both} members of a duplicate pair. Truncation is
+scored by inverse length. We report ROC-AUC against the injected labels.
 
 \section{Results}
 \label{sec:results}
 
 \subsection{Smoothing}
 \label{sec:res-smoothing}
-Table~\ref{tab:theta} shows that $\theta$ is self-adapting. Character trigrams
-receive roughly two orders of magnitude less smoothing than word unigrams on the
-same text ($0.0015$ versus $0.0345$ for \textit{Moby-Dick}), and the
-morphologically rich Arabic corpus receives the most ($0.18$), consistent with
-its far higher rate of singleton types. No fixed $k$ reproduces this behaviour.
+The smoothing statistic $\theta$ is self-adapting (Table~\ref{tab:corpora}):
+across corpora it ranges from $0.005$ (Bible, lexically repetitive) to $0.18$
+(Arabic, which has many singleton types in this corpus), and within a corpus it
+falls by roughly two orders of magnitude from word unigrams to character trigrams.
+A single fixed $k$ cannot reproduce this data-dependent variation across corpora 
+and n-gram representations.
 
-\begin{table}[t]
-\caption{Data-derived smoothing strength $\theta$. It adapts to both the corpus
-and the n-gram order; no parameter is set by the analyst.}
-\label{tab:theta}
+The choice of $k$ is consequential. Fig.~\ref{fig:smoothing} sweeps $k$ over three
+orders of magnitude at the hardest operating point ($r=0.05$), reporting the
+within-corpus effect size averaged over the six corpora. For encoding corruption,
+it ranges from $4.6$ at $k=5$ to $11.6$ at $k=0.001$, a $2.5\times$ difference
+driven entirely by a parameter choice; RGT attains $8.3$, within the strong part
+of that range. For foreign contamination add-$k$ ranges from $4.8$ to $6.7$ and
+RGT attains $5.3$. RGT thus matches good fixed settings without any choice being
+made, and it does so simultaneously for both defect types and all six languages.
+
+\begin{figure}[hbt!]
 \centering
-\small
-\begin{tabular}{@{}llrrr@{}}
-\toprule
-Corpus & Level & Tokens & Singletons & $\theta$ \\
-\midrule
-King James Bible         & word   &   854{,}044 &  3{,}977 & 0.0047 \\
-\textit{Pride and Prej.} & word   &   122{,}880 &  2{,}425 & 0.0197 \\
-\textit{Moby-Dick}       & word   &   218{,}697 &  7{,}541 & 0.0345 \\
-\textit{Dubliners}       & word   &    69{,}231 &  3{,}579 & 0.0517 \\
-Qur'\={a}n (Arabic)      & word   &    77{,}429 & 13{,}958 & 0.1803 \\
-\textit{Moby-Dick}       & char-3 & 1{,}215{,}197 & 1{,}858 & 0.0015 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The choice of $k$ is consequential. Fig.~\ref{fig:smoothing} sweeps $k$ over
-three orders of magnitude at the hardest operating point ($r=0.05$). For encoding
-corruption the effect size ranges from $0.47$ at $k=5$ to $1.58$ at $k=0.001$, a
-threefold difference driven entirely by a parameter choice; RGT attains $1.93$,
-exceeding every setting tested. For foreign-text contamination the dependence is
-weak ($2.31$ to $2.53$) and RGT attains $2.48$, close to the best fixed setting.
-
-Critically, the two defects prefer \emph{opposite} ends of the range: $k=0.001$
-is best for encoding and worst for foreign text, while $k=5$ is the reverse. No
-single $k$ is simultaneously good for both, whereas RGT is near-optimal for both
-without a choice being made.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\columnwidth]{fig_smoothing.pdf}
-\caption{Effect size at $r=0.05$ as a function of the add-$k$ parameter (solid),
-with parameter-free RGT shown as dashed reference lines. The two defect classes
-prefer opposite ends of the $k$ range; RGT is near-optimal for both.}
+\includegraphics[width=0.92\columnwidth]{fig_smoothing_six.pdf}
+\caption{Within-corpus effect size at $r=0.05$ (mean over six corpora) as a
+function of the add-$k$ parameter (solid), with RGT as dashed
+reference lines. RGT matches the strong part of the $k$ range for both defect
+classes with no parameter set.}
 \label{fig:smoothing}
 \end{figure}
 
-RGT is also conservative: it reported a divergence no larger than add-$k$
-($k=0.1$) in all $40$ (defect, rate) cells, while achieving equal or larger
-separation between clean and defective corpora. Placing unseen mass in the shape
-of the partner's distribution suppresses noise more than signal.
+\subsection{Dose--response and the content/structural split}
 
-\subsection{Dose--response}
-Table~\ref{tab:dose} reports mean divergence against injection rate. The measure
-increases monotonically at all seven rate steps for all five defect classes.
-Fig.~\ref{fig:dose} separates the two defect categories.
+Fig.~\ref{fig:dose} shows mean divergence against injection rate, averaged over
+the six corpora. Content defects (foreign, encoding) rise steeply and separate
+cleanly from the $r=0$ baseline distribution; the three structural defects rise 
+only shallowly, as Section~\ref{sec:framework} predicts. Table~\ref{tab:effectsizes} 
+gives the within-corpus effect sizes at $r=0.05$: content defects reach mean $d=8.3$ and
+$5.3$, structural defects at most $0.8$, a separation of at least $6.7\times$.
 
-\begin{table}[t]
-\caption{Mean JS divergence (bits) under RGT by defect and injection rate $r$;
-$n=60$ per cell. All five classes are monotonic in $r$.}
-\label{tab:dose}
+To get the effect sizes, population standard deviation is used:
+\[
+d_{c,r} = \frac{\bar{D}_{c,r} - \bar{D}_{c,0}}{\sqrt{(s^2_{c,r} + s^2_{c,0}) / 2}},
+\]
+\noindent where $D_{c,r}$ denotes the divergence values for corpus $c$ at injection rate $r$, and $D_{c,0}$ denotes the corresponding zero-injection values. The reported table values are the arithmetic mean of \(d_{c,r}\) over the six corpora.
+
+\begin{figure}[hbt!]
 \centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lrrrrrr@{}}
-\toprule
-Defect & $r{=}0$ & $.05$ & $.10$ & $.20$ & $.30$ & $.50$ \\
-\midrule
-foreign     & 0.0080 & 0.0292 & 0.0530 & 0.1159 & 0.1653 & 0.3033 \\
-encoding    & 0.0080 & 0.0135 & 0.0210 & 0.0364 & 0.0520 & 0.0866 \\
-duplicate   & 0.0189 & 0.0197 & 0.0209 & 0.0236 & 0.0273 & 0.0351 \\
-boilerplate & 0.0189 & 0.0192 & 0.0197 & 0.0211 & 0.0228 & 0.0270 \\
-truncate    & 0.0189 & 0.0190 & 0.0191 & 0.0195 & 0.0201 & 0.0222 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig_dose_response.pdf}
-\caption{Dose--response under RGT. (a) Content defects produce steep,
-well-separated responses. (b) Structural defects produce only a shallow rise,
-as Section~\ref{sec:framework} predicts. Error bars are one standard deviation,
-$n=60$.}
+\includegraphics[width=0.82\columnwidth]{fig_dose_sixcorpus.pdf}
+\caption{Dose--response under RGT, mean over six corpora. Content defects
+(solid) rise steeply; structural defects (dashed) stay near the null.}
 \label{fig:dose}
 \end{figure}
 
-\subsection{The frequency profile fails on encoding corruption}
-Table~\ref{tab:sig} compares clean ($r{=}0$) against lightly defective
-($r{=}0.05$) corpora using a one-sided Mann--Whitney $U$ test \cite{mann1947} and
-Cohen's $d$ \cite{cohen1988}.
+\begin{table}[hbt!]
+\caption{Within-corpus effect size $d$ at $r=0.05$ (RGT), mean and range over the
+six corpora. Content defects show substantially larger effect sizes than structural defects.}
+\label{tab:effectsizes}
+\centering
+\small
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Defect & Class & mean $d$ & range \\
+\midrule
+encoding    & content    & $8.28$ & $[4.55, 13.88]$ \\
+foreign     & content    & $5.34$ & $[3.49, 7.61]$ \\
+duplicate   & structural & $0.80$ & $[-0.22, 1.65]$ \\
+truncate    & structural & $0.24$ & $[0.10, 0.37]$ \\
+boilerplate & structural & $0.21$ & $[-0.75, 0.95]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-On foreign-text contamination both instruments detect the defect, the
-information-theoretic measure with an effect size approximately six times larger
-($d=2.48$ versus $0.42$).
+\subsection{The frequency baseline moves the wrong way, in every language}
+Table~\ref{tab:encoding} contrasts RGT with the frequency baseline on encoding
+corruption, per corpus, at $r=0.05$. RGT detects the defect strongly in all six
+languages ($d$ from $4.6$ to $13.9$). The baseline has a \emph{negative} effect
+size in all six ($-2.0$ to $-9.3$): under light corruption it reports a more
+corrupted corpus as more similar to its clean reference. It is non-monotonic in
+every language. Fig.~\ref{fig:encoding} shows the divergence: RGT rises
+monotonically in each language while the baseline does not.
 
-On encoding corruption the frequency profile does not merely underperform; it
-inverts. Its mean falls as corruption rises over the first three rate steps, it
-is monotonic in only four of seven steps, and its effect size is negative
-($d=-0.80$, $p=1.000$): it reports a more heavily corrupted corpus as
-\emph{more} similar to its clean reference. RGT detects the same defect at
-$p\approx2\times10^{-14}$. Fig.~\ref{fig:baseline} shows the contrast.
+The mechanism is instructive. Mojibake substitution alters the corrupted profile 
+by replacing frequent characters with symbols that were rare or absent in the clean corpus. 
+This can move the corrupted profile closer to the reference under an unweighted mean-absolute-frequency criterion, even while the information-theoretic divergence increases.
+The corrupted test distribution is being altered toward a flatter character-frequency distribution, while the clean reference remains unchanged. Depending on the baseline's averaging over the vocabulary, this can reduce the mean absolute frequency difference even though the test distribution has become less faithful to the reference.Whether a real defect is detected or
+concealed thus depends on the choice between a frequency heuristic and an
+information-theoretic quantity, and this holds across languages and scripts.
 
-The mechanism is instructive. Mojibake substitution replaces high-frequency
-characters with rare symbols, flattening the frequency profile toward uniformity.
-A mean of absolute frequency differences shrinks as both profiles flatten,
-whereas a probability-weighted information measure registers the growing cost of
-coding one distribution under the other. Whether a real defect is detected or
-actively concealed thus depends on the choice between a frequency heuristic and
-an information-theoretic quantity.
+\begin{table}[hbt!]
+\caption{Encoding corruption at $r=0.05$: within-corpus effect size $d$ for RGT
+vs.\ the frequency baseline. The baseline is wrong-signed in every language.}
+\label{tab:encoding}
+\centering
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Corpus & RGT $d$ & baseline $d$ \\
+\midrule
+English & $+5.86$  & $-2.69$ \\
+Bible   & $+6.99$  & $-6.51$ \\
+Spanish & $+9.54$  & $-9.30$ \\
+Arabic  & $+4.55$  & $-7.41$ \\
+Igbo    & $+13.88$ & $-1.99$ \\
+Pidgin  & $+8.89$  & $-3.18$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\begin{table}[t]
-\caption{Clean ($r{=}0$) vs.\ lightly defective ($r{=}0.05$), $n=60$ per group,
-corpus-level instrument. One-sided Mann--Whitney $U$; Cohen's $d$. With five
-defect classes tested, the Bonferroni-corrected threshold is $\alpha=0.010$.}
-\label{tab:sig}
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=\columnwidth]{fig_encoding_sixcorpus.pdf}
+\caption{Encoding corruption across six corpora. (a) RGT rises monotonically in
+every language. (b) The frequency baseline is non-monotonic and wrong-signed at
+low corruption in every language.}
+\label{fig:encoding}
+\end{figure}
+
+\subsection{Foreign contamination, including the same-script hard case}
+Table~\ref{tab:foreign} reports foreign contamination per corpus. Detection is
+strong in every case; and critically, the deliberate same-script hard case,
+Pidgin contaminated with English (no script change, shared lexicon), is still
+detected at $d=3.53$. The sensitivity floor of the method is therefore high: it
+does not rely on a change of script. As expected, the largest signal comes from
+the largest script/register distance (Arabic contaminated with English,
+$d=7.61$). Fig.~\ref{fig:foreign} shows the dose--response per corpus.
+
+\begin{table}[hbt!]
+\caption{Foreign contamination per corpus (RGT): divergence at $r{=}0$ and
+$r{=}0.5$, and within-corpus effect size at $r{=}0.05$. Pidgin$\leftarrow$English
+is the same-script, shared-lexicon hard case.}
+\label{tab:foreign}
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lrrrr@{}}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-& \multicolumn{2}{c}{RGT} & \multicolumn{2}{c}{Frequency profile} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-Defect & $d$ & $p$ & $d$ & $p$ \\
+Host & Contaminant & $r{=}0$ & $r{=}0.5$ & $d@0.05$ \\
 \midrule
-foreign     & $+2.48$ & $2.1{\times}10^{-21}$ & $+0.42$ & $0.008$ \\
-encoding    & $+1.93$ & $2.0{\times}10^{-14}$ & $-0.80$ & $1.000$ \\
-duplicate   & $+0.30$ & $0.047$               & $+0.08$ & $0.155$ \\
-boilerplate & $+0.11$ & $0.267$               & $+0.04$ & $0.269$ \\
-truncate    & $+0.04$ & $0.393$               & $+0.06$ & $0.207$ \\
+Arabic  & English & 0.006 & 0.689 & $7.61$ \\
+Spanish & Arabic  & 0.003 & 0.141 & $7.27$ \\
+Igbo    & Arabic  & 0.004 & 0.111 & $5.06$ \\
+Bible   & Arabic  & 0.005 & 0.079 & $5.04$ \\
+Pidgin  & English & 0.004 & 0.115 & $3.53$ \\
+English & Arabic  & 0.003 & 0.074 & $3.49$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[hbt!]
 \centering
-\includegraphics[width=\columnwidth]{fig_baseline_failure.pdf}
-\caption{Encoding corruption. (a) The information-theoretic measure rises
-monotonically. (b) The frequency profile is non-monotonic, decreasing over the
-first three rate steps: it reports increasing corruption as increasing
-similarity.}
-\label{fig:baseline}
+\includegraphics[width=0.82\columnwidth]{fig_foreign_sixcorpus.pdf}
+\caption{Foreign-contamination dose--response per corpus (RGT). Pidgin
+(dashed) is the same-script hard case; it is still clearly detected.}
+\label{fig:foreign}
 \end{figure}
 
-\subsection{The framework's prediction is confirmed}
-Table~\ref{tab:sig} also bears on the prediction of
-Section~\ref{sec:framework}. The two content defects are detected with large
-effect sizes ($d=2.48$ and $1.93$) and survive Bonferroni correction
-comfortably. Of the three structural defects, none survives correction: the
-largest, duplication, reaches $p=0.047$ against a corrected threshold of
-$0.010$, and its effect size of $0.30$ is $6.5$ times smaller than the weaker of
-the two content effects. Corpus-level divergence therefore separates the two
-defect categories sharply, as predicted, even though duplication is not entirely
-invisible to it.
-
-Moved to the document level, the same structural defects are detected without
-error (Table~\ref{tab:doclevel}): ROC-AUC of $1.000\pm0.000$ at every injection
-rate tested, over 60 runs each. The verification/validation distinction thus
-makes a correct, falsifiable prediction about which instrument succeeds,
-converting a descriptive taxonomy into an operational one.
-
-\begin{table}[t]
-\caption{Structural defects: corpus-level vs.\ document-level detection.
-AUC is mean $\pm$ s.d.\ over 60 runs.}
-\label{tab:doclevel}
-\centering
-\small
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Defect & Corpus-level $d$ ($r{=}.05$) & Document-level ROC-AUC \\
-\midrule
-truncate  & $0.04$ & $1.000 \pm 0.000$ \\
-duplicate & $0.30$ & $1.000 \pm 0.000$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\section{Case Study: Naturally Occurring Defects}
-\label{sec:casestudy}
-
-Injected defects are synthetic by construction. During development our own
-preprocessing pipeline produced three defects that were not injected, and which
-therefore serve as a small sample of naturally occurring faults. Each is a
-verification failure in the sense of Section~\ref{sec:framework}, and each was
-invisible to aggregate content statistics---the instrument the framework predicts
-would miss it.
-
-\textbf{A segmenter that returned a single document.} Segmentation on blank lines
-returned the Qur'\={a}n, which is stored one verse per line and contains none, as
-a single document of $706{,}471$ characters rather than approximately two
-hundred. Foreign-contamination injection was consequently inserting an entire
-book rather than a comparable document. The resulting divergence was large
-($\approx0.96$ at $r=0.25$) and was an artifact of document size rather than of
-language; the value under correct segmentation is $0.088$. Document-length
-inspection, the document-level instrument, exposes this immediately.
-
-\textbf{A tokenizer that destroyed the script it measured.} A tokenizer built on
-the regular expression \verb|\w+| silently discards Unicode category
-\textsf{Mn} (nonspacing combining marks). Applied to the fully vocalized
-Qur'\={a}n, every diacritic acted as a word boundary, shattering words into
-single letters: $285{,}735$ apparent tokens of only $207$ types, the Arabic
-letter inventory. A Unicode-aware pattern,
-\verb|[\p{L}\p{N}][\p{L}\p{N}\p{M}]*|, yields $77{,}429$ tokens and $21{,}117$
-types. No corpus-level divergence would have revealed this; the type--token
-relationship does.
-
-\textbf{Ground-truth labels that penalized a correct detector.} Duplicate
-detection initially scored AUC $0.947$ because labels marked only the overwritten
-document and not the one it was copied from, penalizing a detector that correctly
-flags both members of a pair. With labels corrected, AUC is $1.000$.
-
-These cases support the framework in a setting where the defects were not planted
-for the purpose, and they illustrate a practical point: a preprocessing fault can
-present as a strong experimental result. The first, in particular, would have
-appeared as an exceptionally clear detection had it gone unexamined.
+\subsection{The framework's prediction holds in every language}
+The structural defects of Table~\ref{tab:effectsizes} are weak at the corpus
+level (mean $d\le0.8$). Moved to the document level, different instruments detect the same defects
+without error in \emph{every} corpus (corpus-level: JSD, document-level duplication: nearest-neighbour similarity, document-level truncation: inverse length): ROC-AUC = 1.000 ± 0.000 for both duplication and truncation at every non-zero injection rate tested. The verification/validation distinction thus makes a correct, falsifiable prediction about 
+which instrument succeeds, and it does so language-independently within our experiment, converting a descriptive taxonomy into an operational one.
 
 \section{Threats to Validity}
 
-Our substrate is literary and scriptural public-domain text rather than the
-newswire and web corpora that motivate the work; absolute divergence values will
-differ on other genres. We therefore avoid absolute interpretive thresholds and
-rely on the within-corpus null distribution the injection protocol supplies.
+Absolute divergence values differ across corpora and genres, so we avoid absolute
+interpretive thresholds and rely on the within-corpus null the injection protocol
+supplies. Effect sizes are reported within corpus for the reason given in
+Section~\ref{sec:pooling}.
 
-Injected defects are synthetic. They are drawn from the classes reported in real
-audits \cite{kreutzer2022,dodge2021}, and Section~\ref{sec:casestudy} adds a
-small number of naturally occurring cases, but real corpora may exhibit
-correlated or subtler defects. Synthetic injection buys a known answer at the
-cost of realism; we consider this the correct trade for establishing detection,
-and a precondition for studies on naturally occurring defects.
+The truncation condition is deliberately severe, reducing affected documents to five tokens; consequently, the resulting document-level performance establishes detection under extreme truncation rather than sensitivity to minimally truncated documents.
+
+Injected defects are synthetic. They are drawn from classes reported in real
+audits \cite{kreutzer2022,dodge2021}, but real corpora may exhibit correlated or
+subtler defects. Synthetic injection buys a known answer at the cost of realism;
+we consider this the correct trade for establishing detection, and a precondition
+for studies on naturally occurring defects.
 
 RGT trades formal metricity for adaptivity, as quantified in
 Section~\ref{sec:props}. For detection this is immaterial, but applications
-requiring the triangle inequality should use fixed smoothing.
+requiring the triangle inequality should use fixed smoothing. Finally, divergence
+from a reference is not the same as poor quality: a corpus in a new genre
+\emph{should} diverge from an established reference. Our protocol sidesteps this
+by comparing a corpus against a clean sample of itself.
 
-Finally, divergence from a reference is not the same as poor quality: a corpus in
-a new genre \emph{should} diverge from an established reference. Our protocol
-sidesteps this by comparing a corpus against a clean sample of itself, which we
-recommend as general practice.
-
-\section{Conclusion}
+\section{Conclusion and Future Work}
 
 We have treated corpus verification and validation as an engineering process with
 measurable outcomes, and supplied three components: a framework that maps defect
-classes to detection instruments, a parameter-free divergence estimator, and a
-controlled ground truth against which detection can be demonstrated rather than
-illustrated.
+classes to detection instruments; a divergence estimator requiring no user-selected corpus, language, or n-gram-specific smoothing parameter; and a
+multilingual controlled ground truth against which detection is demonstrated
+rather than illustrated. Reciprocal Good--Turing smoothing removes a free
+parameter whose choice alters measured effect size more than twofold, and
+self-adapts across n-gram orders and across six corpora spanning five languages.
+The measure is monotonic in defect rate for content defects in every language,
+whereas a frequency-profile baseline moves the wrong way under light encoding
+corruption in all six. The verification/validation distinction correctly predicts
+which instrument detects which defect, content defects at the corpus level,
+structural defects at the document level with ROC-AUC $=1.000$, language-independently.
 
-Reciprocal Good--Turing smoothing removes a free parameter whose choice we showed
-can alter measured effect size threefold, self-adapts across n-gram orders by two
-orders of magnitude, and produces conservative estimates with larger effect sizes
-than any fixed $k$ examined on the harder content defect. The measure is
-monotonic in defect rate for all five defect classes, whereas a frequency-profile
-baseline is non-monotonic on encoding corruption and reports it with the wrong
-sign. Finally, the verification/validation distinction correctly predicts which
-instrument detects which defect: content defects at the corpus level with effect
-sizes at least $6.5\times$ those of structural defects, and structural defects at
-the document level with ROC-AUC $=1.000$.
-
-Future work should extend the injection protocol to parallel corpora, where a
-misalignment injector permits the same treatment of sentence- and
-paragraph-alignment pipelines, and should evaluate the estimator against corpora
-carrying naturally occurring, human-annotated defects.
+Two limitations frame the future work. First, our substrate, while spanning two
+scripts (Latin and Arabic), is confined to \emph{space-delimited} writing
+systems, in which whitespace marks word boundaries. The word-level track
+therefore does not yet apply to scripts that require prior segmentation; Chinese,
+Japanese, and Thai, or logographic systems whose very large character
+inventories would also change the character-level smoothing dynamics; extending
+the framework to these is the natural next step. Second, the injected defects are
+synthetic; evaluating the estimator against corpora carrying naturally occurring,
+human-annotated defects, and extending the injection protocol to parallel corpora
+so that sentence and, paragraph-alignment pipelines can be treated the same way,
+remain open.
 
 \section*{Reproducibility}
-All corpora are public domain; the estimator, injection harness, experiment
-drivers, and analysis scripts are released with fixed random seeds, and every
-figure and table regenerates from them.
+All corpora are public or openly licensed; the estimator, injection harness,
+experiment drivers, and analysis scripts are released with fixed random seeds, and
+every figure and table regenerates from them.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
